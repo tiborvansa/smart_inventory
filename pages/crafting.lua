@@ -621,7 +621,7 @@ local function crafting_callback(state)
 
 
 	-- Get craftable by items in inventory
-	local btn_craftable = state:image_button(11, 4, 0.5, 0.5, "craftable", "", "smart_inventory_craftable_button.png")
+	local btn_craftable = state:image_button(11, 4, 0.5, 0.5, "craftable", "", "smart_inventory_inventory_button.png")
 	btn_craftable:setTooltip("Show items crafteable by items in inventory")
 	btn_craftable:onClick(function(self, state, player)
 		state.param.crafting_items_in_inventory = state.param.invobj:get_items()

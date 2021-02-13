@@ -314,15 +314,26 @@ function ui_tools.get_list_grouped(itemtable)
 
 	-- magic to calculate relevant groups
 	local itemcount = #itemtable
-	local best_group_count = itemcount ^(1/3)
+	local best_group_count = 20
 	local best_group_size = (itemcount / best_group_count) * 1.5
 	best_group_count = math.floor(best_group_count)
 	local sorttab = {}
 
+  local basic_groups = {["type:tool"] = 1}
+
 	for k,v in pairs(grouped) do
-		if #v.items < 3 or #v.items >= itemcount - 3 then
+    local ismodg = string.find(v.name,"mod:")
+    --if ismodg == nil then modttt = 0 end      
+    --string.find(v.name,'mod')
+		if #v.items >= itemcount - 3 then
 			grouped[k] = nil
-		else
+		else		  
+		  --if basic_groups[v.name] then v.group_priority = 1
+		  if basic_groups[v.name] then v.group_priority = 99 --minetest.log("info","tool")
+		  --elseif string.find(v.name,"mod:") then v.group_priority = 1 
+		  else v.group_priority = 0 end
+		  --if string.find(v.cgroup.group_desc,'tool') then minetest.log("info","tool")--v.group_priority = 1
+      --else v.group_priority = 0 end   		   
 			v.group_size = #v.items
 			v.unique_count = #v.items
 			v.best_group_size = best_group_size
@@ -333,11 +344,22 @@ function ui_tools.get_list_grouped(itemtable)
 
 	local outtab = {}
 	local assigned_items = {}
+	
+	local smart_inventory_all_groups = minetest.setting_getbool("smart_inventory_all_groups")
+	
+	
 	if best_group_count > 0 then
 		for i = 1, best_group_count do
 			-- sort by best size
 			table.sort(sorttab, function(a,b)
-				return a.diff < b.diff
+			  --if a.name == "stone" and b.name == "stone" then return a.diff < b.diff
+				--elseif b.name == "stone" then return false  --1== "type:tool"
+				--elseif a.name == "stone" then return true --1== "type:tool"
+				if a.group_priority ==  b.group_priority then return a.diff > b.diff				
+				--elseif a.group_priority  b.group_priority then return true 
+				--elseif a.group_priority > b.group_priority then return false 
+				--elseif a.diff < b.diff then return true
+				else return a.group_priority > b.group_priority end
 			end)
 
 			local sel = sorttab[1]
@@ -355,8 +377,8 @@ function ui_tools.get_list_grouped(itemtable)
 
 			for _, item in ipairs(sel.items) do
 				assigned_items[item.item] = true
-			-- update the not selected groups
-				for _, group in pairs(cache.citems[item.item].cgroups) do
+			 --update the not selected groups
+			 	for _, group in pairs(cache.citems[item.item].cgroups) do
 					if group.name ~= sel.name then
 						local u = grouped[group.name]
 						if u and u.unique_count and u.group_size > 0 then
@@ -367,7 +389,7 @@ function ui_tools.get_list_grouped(itemtable)
 							end
 						end
 					end
-				end
+				end 
 			end
 
 			for idx = #sorttab, 1, -1 do
@@ -389,6 +411,7 @@ function ui_tools.get_list_grouped(itemtable)
 			table.insert(other, item)
 		end
 	end
+	
 
 	-- default groups
 	outtab.all = {}
