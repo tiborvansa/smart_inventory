@@ -194,16 +194,7 @@ filter.register_filter({
 		end,
 	})
 
---[[ does it sense to filter them? I cannot define the human readable groups for them
-filter.register_filter({
-		name = "drawtype",
-		check_item_by_def = function(self, def)
-			if def.drawtype ~= "normal" then
-				return def.drawtype
-			end
-		end,
-	})
-]]
+
 
 local shaped_groups = {}
 local shaped_list = minetest.setting_get("smart_inventory_shaped_groups") or "carpet,door,fence,stair,slab,wall,micro,panel,slope"
@@ -212,6 +203,8 @@ if shaped_list then
 		shaped_groups[z] = true
 	end
 end
+
+
 
 filter.register_filter({
 		name = "shape",
@@ -233,66 +226,128 @@ filter.register_filter({
 		end,
 	})
 
---[[ disabled since debug.getupvalue is not usable to secure environment
 filter.register_filter({
 		name = "food",
 		check_item_by_def = function(self, def)
-			if def.on_use then
-				local name,change=debug.getupvalue(def.on_use, 1)
-				if name~=nil and name=="hp_change" and change > 0 then
-					return tostring(change)
+      for k, v in pairs(def.groups) do
+				if  string.find(k,"food_") then
+					return true
 				end
-			end
+			end	
+			if string.find(def.name,"food_") or string.find(def.name,"food:") or string.find(def.name,"_food") 
+			   or string.find(def.name,"mtfood") or string.find(def.name,"pie:")
+			     then return true 
+        end	
+      if def.recipetype == "cooking" then return true  
+			 end
 		end,
 	})
 
 filter.register_filter({
-		name = "toxic",
+		name = "homedecor",
 		check_item_by_def = function(self, def)
-			if def.on_use then
-				local name,change=debug.getupvalue(def.on_use, 1)
-				if name~=nil and name=="hp_change" and change < 0 then
-					return tostring(change)
-				end
-			end
+			if string.find(def.name,"homedecor") or string.find(def.name,"curtain") 
+			   or string.find(def.name,"furniture") or string.find(def.name,"Irfurn")
+			     then return true
+        end	
 		end,
 	})
-]]
+
+filter.register_filter({
+		name = "farming",
+		check_item_by_def = function(self, def)
+      for k, v in pairs(def.groups) do
+				if  string.find(k,"farming") then
+					return true
+				end
+			end
+			if string.find(def.name,"farming") or string.find(def.name,"crops") or string.find(def.name,"bonemeal") 
+			   or string.find(def.name,"cottages") or string.find(def.name,"compost")
+          then return true 
+        end
+		end,
+	})
+
+filter.register_filter({
+    name = "weapons_armor",
+    check_item_by_def = function(self, def)
+      if def.tool_capabilities and def.tool_capabilities.damage_groups then
+        for k, v in pairs(def.tool_capabilities.damage_groups) do
+          if v ~= 0 and (def.tool_capabilities.damage_groups["fleshy"] or 1) > 4
+                and not (string.find(def.name,"default:axe") or string.find(def.name,"default:pick_")
+                    or string.find(def.name,"shovel")  or string.find(def.name,"sickles") 
+                    or def.name == "anvil:hammer")
+                then
+            return true
+          end
+        end
+      end
+      if def.armor_groups then
+        return true
+      end
+      if string.find(def.name,"weapon") or string.find(def.name,"cannon")
+        or string.find(def.name,"spykes") or  string.find(def.name,"armor")
+        or string.find(def.name,"armour") or  string.find(def.name,"sword")
+      then return true
+      end  
+    end
+  })
+
+filter.register_filter({
+    name = "castle",
+    check_item_by_def = function(self, def)
+      local mname = def.name:split(":")[1]
+      local pname = def.name:split(":")[2]
+      if string.find(def.name,"castle") or string.find(def.name,"princess") 
+          --or string.find(def.name,"ropes:")
+           then return true
+        end
+      if mname == "jonez" then return true end   
+    end,
+  })
+
+filter.register_filter({
+    name = "mesecon",
+    check_item_by_def = function(self, def)
+      if string.find(def.name,"mesecon") --or string.find(def.name,"curtain") 
+           then return true
+        end 
+    end,
+  })
+
+local tools_machines = {["anvil:anvil"]=1,["crafting_bench:workbench"]=1,["default:furnace"]=1,["moreblocks:circular_saw"]=1
+      ,["doc_encyclopedia:encyclopedia"]=1,["doc_identifier:identifier_solid"]=1,["default_torch"]=1,}
 
 filter.register_filter({
 		name = "tool",
 		check_item_by_def = function(self, def)
-			if not def.tool_capabilities then
-				return
-			end
-			local rettab = {}
-			for k, v in pairs(def.tool_capabilities) do
-				if type(v) ~= "table" and v ~= 0 then
-					rettab["tool:"..k] = v
-				end
-			end
-			if def.tool_capabilities.damage_groups then
-				for k, v in pairs(def.tool_capabilities.damage_groups) do
-					if v ~= 0 then
-						rettab["damage:"..k] = v
-					end
-				end
-			end
---[[ disabled, I cannot find right human readable interpretation for this
-			if def.tool_capabilities.groupcaps then
-				for groupcap, gdef in pairs(def.tool_capabilities.groupcaps) do
-					for k, v in pairs(gdef) do
-						if type(v) ~= "table" then
-							rettab["groupcaps:"..groupcap..":"..k] = v
-						end
-					end
-				end
-			end
-]]
+      local mname = def.name:split(":")[1]
+      local pname = def.name:split(":")[2]		
+      if mname == "cartographer" or mname == "binoculars" or mname == "beds"  or mname == "campfire"
+         or string.find(def.name,"book") or mname == "sailing_kit"   
+         then return true end		
+      if tools_machines[def.name] then return true end
+      --only tools   
+		  if def.type ~= "tool" then return end 
+			local rettab = {}  
+			--without weapons  
+			local weapon_filter = filter.get("weapons_armor")
+      local weapon_groups = weapon_filter:check_item_by_def(def)
+      if weapon_groups ~= nil and not (string.find(def.name,"default:axe"))  then return
+        end
+        
+      if def.tool_capabilities then  
+			 for k, v in pairs(def.tool_capabilities) do
+				  if type(v) ~= "table" and v ~= 0 then
+				     rettab["tool:"..k] = v
+				  end
+			 end
+			else return true 
+			end 
 			return rettab
 		end,
 		get_keyword = function(self, group)
-			if group.name == "tool" or group.name == "damage" then
+			if group.name == "tool" then
 				return nil
 			else
 				return self:_get_keyword(group)
@@ -300,22 +355,60 @@ filter.register_filter({
 		end
 	})
 
-filter.register_filter({
-		name = "armor",
-		check_item_by_def = function(self, def)
-			return def.armor_groups
-		end,
-	})
+
 
 filter.register_filter({
-		name = 'clothing_cape',
+		name = 'clothing',
 		check_item_by_def = function(self, def)
-			if def.groups.cape then
-				return 'clothing'
-			end
+			if string.find(def.name,"clothing") or string.find(def.name,"wool")
+        --or string.find(def.name,"spykes")  
+        then return true
+      end
 		end
 	})
 
+filter.register_filter({
+    name = 'materials',
+    check_item_by_def = function(self, def)
+      local mname = def.name:split(":")[1]
+      local pname = def.name:split(":")[2]
+      if mname == "abriglass" or string.find(def.name,"materials")
+        or mname == "unifiedbricks" or mname == "xpanes"  
+        or mname == "building_blocks" or mname == "mtg_plus" 
+        or mname == "stained_glass" or mname == "cement" 
+        or (mname == "moreblocks" and def.type == "node")
+        or (mname == "moreores" and def.type == "node")
+        or (mname == "ethereal" and def.type == "node")
+        then return true
+      end
+      if mname == "default" and def.type == "node" and not (def.groups["attached_node"] or def.groups["sapling"])
+        then return true
+        end 
+    end
+  })
+
+filter.register_filter({
+    name = 'drawers',
+    check_item_by_def = function(self, def)
+      local mname = def.name:split(":")[1]
+      local pname = def.name:split(":")[2]    
+      if string.find(def.name,"drawer") or string.find(def.name,"hopper")
+        or mname == "ropes" or mname == "cart" or mname == "boost_cart"  
+        then return true 
+      end
+    end
+  })
+
+filter.register_filter({
+    name = 'signs',
+    check_item_by_def = function(self, def)
+    local mname = def.name:split(":")[1]
+    local pname = def.name:split(":")[2]
+      if mname == "ehlphabet" or mname == "cube_nodes" or mname == "hiking"  
+        then return true
+      end
+    end
+  })
 
 -- Burn times
 filter.register_filter({
@@ -328,6 +421,12 @@ filter.register_filter({
 		end
 })
 
+filter.register_filter({
+    name = "norecipe",
+    check_item_by_def = function(self, def)
+      if minetest.get_craft_recipe(def.name).items == nil then return true end
+    end
+})
 
 -- Group assignment done in cache framework internally
 filter.register_filter({
@@ -403,6 +502,45 @@ filter.register_filter({
 			end
 		end
 	})
+
+--[[ disabled since debug.getupvalue is not usable to secure environment
+filter.register_filter({
+    name = "food",
+    check_item_by_def = function(self, def)
+      if def.on_use then
+        local name,change=debug.getupvalue(def.on_use, 1)
+        if name~=nil and name=="hp_change" and change > 0 then
+          return tostring(change)
+        end
+      end
+    end,
+  })
+
+filter.register_filter({
+    name = "toxic",
+    check_item_by_def = function(self, def)
+      if def.on_use then
+        local name,change=debug.getupvalue(def.on_use, 1)
+        if name~=nil and name=="hp_change" and change < 0 then
+          return tostring(change)
+        end
+      end
+    end,
+  })
+]]
+
+--[[ does it sense to filter them? I cannot define the human readable groups for them
+filter.register_filter({
+    name = "drawtype",
+    check_item_by_def = function(self, def)
+      if def.drawtype ~= "normal" then
+        return def.drawtype
+      end
+    end,
+  })
+
+]]
+
 
 ----------------
 return filter

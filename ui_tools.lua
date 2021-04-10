@@ -314,26 +314,40 @@ function ui_tools.get_list_grouped(itemtable)
 
 	-- magic to calculate relevant groups
 	local itemcount = #itemtable
-	local best_group_count = 20
+	local best_group_count = 14
 	local best_group_size = (itemcount / best_group_count) * 1.5
 	best_group_count = math.floor(best_group_count)
 	local sorttab = {}
 
-  local basic_groups = {["type:tool"] = 1}
+  local basic_groups = {["tool"] = 98,["food"] = 99,["homedecor"] = 99,["weapons_armor"] = 99,["farming"] = 99
+                        ,["castle"] = 99,["mesecon"] = 99,["mod:petz"] = 99,["mod:unifieddyes"] = 99,["shape"]=50
+                        ,["clothing"] = 99,["materials"] = 99,["drawers"] = 99,["signs"] = 99, ["norecipe"] = 99}
+  local unwanted_groups = {["type:node"] = -1,
+                           ["flammable"] = -1,                     
+                           ["dig_immediate"] = -1,
+                           ["attached_node"] = -1,
+                           ["attached_node"] = -1,
+                           ["cracky"]=-1,
+                           ["crumbly"]=-1,
+                           ["choppy"]=-1,
+                           ["snappy"]=-1,
+                           ["type:craft"]=-1,
+                           ["translucent"]=-1,
+                           ["oddly_breakable_by_hand"]=-1,
+                            }
 
 	for k,v in pairs(grouped) do
-    local ismodg = string.find(v.name,"mod:")
-    --if ismodg == nil then modttt = 0 end      
-    --string.find(v.name,'mod')
-		if #v.items >= itemcount - 3 then
+    local ismodg = string.find(v.name,"mod:")    
+
+		if #v.items >= itemcount - 10 then
 			grouped[k] = nil
 		else		  
-		  --if basic_groups[v.name] then v.group_priority = 1
-		  if basic_groups[v.name] then v.group_priority = 99 --minetest.log("info","tool")
-		  --elseif string.find(v.name,"mod:") then v.group_priority = 1 
-		  else v.group_priority = 0 end
-		  --if string.find(v.cgroup.group_desc,'tool') then minetest.log("info","tool")--v.group_priority = 1
-      --else v.group_priority = 0 end   		   
+		
+		  if basic_groups[v.name] then v.group_priority = basic_groups[v.name] --minetest.log("info","tool")
+		  elseif ismodg then v.group_priority = 2
+      elseif unwanted_groups[v.name] then v.group_priority = unwanted_groups[v.name]
+      elseif v.parent and v.parent.name and unwanted_groups[v.parent.name] then v.group_priority = unwanted_groups[v.parent.name]
+		  else v.group_priority = 0 end		   
 			v.group_size = #v.items
 			v.unique_count = #v.items
 			v.best_group_size = best_group_size
@@ -345,20 +359,14 @@ function ui_tools.get_list_grouped(itemtable)
 	local outtab = {}
 	local assigned_items = {}
 	
-	local smart_inventory_all_groups = minetest.setting_getbool("smart_inventory_all_groups")
+	--local smart_inventory_all_groups = minetest.setting_getbool("smart_inventory_all_groups")
 	
 	
 	if best_group_count > 0 then
 		for i = 1, best_group_count do
 			-- sort by best size
 			table.sort(sorttab, function(a,b)
-			  --if a.name == "stone" and b.name == "stone" then return a.diff < b.diff
-				--elseif b.name == "stone" then return false  --1== "type:tool"
-				--elseif a.name == "stone" then return true --1== "type:tool"
-				if a.group_priority ==  b.group_priority then return a.diff > b.diff				
-				--elseif a.group_priority  b.group_priority then return true 
-				--elseif a.group_priority > b.group_priority then return false 
-				--elseif a.diff < b.diff then return true
+				if a.group_priority ==  b.group_priority then return a.diff < b.diff				
 				else return a.group_priority > b.group_priority end
 			end)
 
@@ -476,12 +484,22 @@ local function prepare_root_lists()
 
 		entry.sort_value = unifieddyes_sort_order(entry) or armor_sort_order(entry) or itemname
 		citem.ui_item = entry
+		local isshape = string.find(itemname,":stair_") or string.find(itemname,":slope_")  or 
+		                string.find(itemname,":micro_") or string.find(itemname,":slab_")  or
+		                string.find(itemname,":wall_") or string.find(itemname,":panel_") or 
+		                string.find(itemname,":arrowslit_") or string.find(itemname,":pillar_") or
+		                string.find(itemname,"technic:") or string.find(itemname,"pipeworks:") or
+		                string.find(itemname,"computer:") or string.find(itemname,"heads:") or
+		                string.find(itemname,"plasmascreen:") or string.find(itemname,"wine:")
+		if not isshape then 
 		if citem.cgroups["shape"] then
 			table.insert(ui_tools.root_list_shape, entry)
 		else
 			table.insert(ui_tools.root_list, entry)
+			table.insert(ui_tools.root_list_all, entry)
 		end
-		table.insert(ui_tools.root_list_all, entry)
+		end 
+		--table.insert(ui_tools.root_list_all, entry)
 	end
 end
 cache.register_on_cache_filled(prepare_root_lists)

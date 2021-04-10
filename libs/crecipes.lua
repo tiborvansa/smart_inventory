@@ -18,16 +18,18 @@ crecipes.crecipe_class = crecipe_class
 function crecipe_class:analyze()
 	-- check recipe output
 
-	if self._recipe.type == "cooking" then
+	--[[if self._recipe.type == "cooking" then
 		return false --fuel not supported
-	end
-
-	if self._recipe.output == "" then
+	end]]
+  
+  
+	if self._recipe.type ~= "cooking" and self._recipe.output == "" then
 		minetest.log("[smartfs_inventory] broken recipe without output "..dump(self._recipe))
 		return false
 	end
-
-	local outstack = ItemStack(self._recipe.output)
+  
+	local outstack = ItemStack(self._recipe.output)	
+	
 	if outstack:get_meta():get_int("palette_index") > 0 then
 		minetest.log("verbose", "[smartfs_inventory] ignore unifieddyes recipe "..self._recipe.output)
 		return -- not supported

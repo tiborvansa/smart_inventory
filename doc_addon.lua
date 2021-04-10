@@ -5,7 +5,7 @@ local doc_addon = {}
 local doc_item_entries = {}
 
 function doc_addon.is_revealed_item(itemname, playername)
-	if not smart_inventory.doc_items_mod then
+	--[[if not smart_inventory.doc_items_mod then
 		return true
 	end
 
@@ -17,7 +17,7 @@ function doc_addon.is_revealed_item(itemname, playername)
 	else
 		-- unknown item
 		return false
-	end
+	end]]
 	return true
 end
 
